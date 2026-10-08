@@ -1,376 +1,229 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>مزيل الكائنات AI - مجاني</title>
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><title>Yemen Safya — Éditeur</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-  *{box-sizing:border-box}
-  body{font-family:system-ui,sans-serif;background:#0f0f1a;color:#e0e0ff;margin:0;padding:16px;display:flex;flex-direction:column;align-items:center;min-height:100vh}
-  .container{max-width:700px;width:100%;background:#1a1a2e;border-radius:20px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,0.5)}
-  h1{color:#6effb0;text-align:center;font-size:22px;margin:0 0 10px}
-  #status{text-align:center;margin:15px 0;font-size:13px;color:#aaa;min-height:40px;line-height:1.5}
-  #drop-zone{border:2px dashed #6effb0;border-radius:15px;padding:40px 20px;text-align:center;cursor:pointer;transition:.3s}
-  #drop-zone:hover{background:rgba(110,255,176,.1)}
-  #drop-zone p{margin:8px 0}
-  #canvas-container{position:relative;display:none;margin-top:20px;max-width:100%}
-  #image-canvas{max-width:100%;border-radius:10px;display:block;height:auto}
-  #mask-canvas{position:absolute;top:0;left:0;cursor:crosshair;border-radius:10px;touch-action:none}
-  #controls{display:none;margin-top:20px;gap:10px;justify-content:center;flex-wrap:wrap}
-  button{background:linear-gradient(90deg,#7c3aed,#06b6d4);border:none;color:#fff;padding:12px 22px;border-radius:10px;font-weight:bold;cursor:pointer;font-size:15px;font-family:inherit}
-  button:disabled{opacity:.5;cursor:not-allowed}
-  .progress-bar{width:100%;height:6px;background:#333;border-radius:3px;margin-top:15px;overflow:hidden;display:none}
-  .progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#6effb0,#06b6d4);transition:width .3s}
-  .hint{color:#6effb0;font-weight:800;font-size:12px;text-align:center;margin-top:8px}
-</style>
-</head>
-<body>
-<div class="container">
-  <h1>✨ مزيل الكائنات AI</h1>
-  <div id="status">⏳ جاري تحميل النموذج... (قد يستغرق بعض الوقت في المرة الأولى)</div>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#05050a;color:#e8e8ff;font-family:'Inter',sans-serif;overscroll-behavior:none;background-image:radial-gradient(circle at 20% 0%,rgba(124,58,237,.08),transparent 50%),radial-gradient(circle at 80% 100%,rgba(6,182,214,.08),transparent 50%)}
+.pixora{max-width:940px;margin:14px auto;padding:12px}
+.tool-dark{background:linear-gradient(180deg,#12122a 0%,#0d0d1e 100%);border:1px solid #2e2e6a;border-radius:24px;padding:18px;box-shadow:0 20px 60px rgba(124,58,237,.15),inset 0 1px 0 rgba(255,255,255,.05)}
+.badge-pro{display:flex;align-items:center;gap:8px;padding:10px 20px;border-radius:100px;background:linear-gradient(90deg,rgba(0,230,118,.12),rgba(6,182,214,.12));border:1px solid rgba(0,230,118,.35);color:#6effb0;font-size:11px;font-weight:800;margin:0 auto 16px;width:fit-content;letter-spacing:.5px;box-shadow:0 0 20px rgba(0,230,118,.15)}
+.badge-pro::before{content:'';width:8px;height:8px;border-radius:50%;background:#6effb0;box-shadow:0 0 10px #6effb0;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+.initial-chooser{display:grid;place-items:center;min-height:520px;background:radial-gradient(circle at center,#16162e 0%,#0e0e22 100%);border:2px dashed rgba(168,85,247,.4);border-radius:22px;padding:22px;cursor:pointer;text-align:center;max-width:600px;margin:0 auto;transition:.3s}
+.initial-chooser:hover{border-color:rgba(168,85,247,.8);background:radial-gradient(circle at center,#1a1a3a 0%,#0e0e22 100%);transform:translateY(-2px)}
+.chooser-icon{font-size:64px;margin-bottom:12px;filter:drop-shadow(0 0 20px rgba(124,58,237,.5))}
+.chooser-title{color:#fff;font-weight:900;font-size:20px;margin:8px 0 6px}
+.chooser-sub{color:#9aa0be;font-size:13px;margin-bottom:20px}
+.chooser-cta{padding:14px 32px;border-radius:14px;background:linear-gradient(135deg,#7c3aed,#06b6d4);color:#fff;font-weight:800;display:inline-block;font-size:14px;box-shadow:0 10px 30px rgba(124,58,237,.4);transition:.3s}
+.initial-chooser:hover .chooser-cta{transform:scale(1.05);box-shadow:0 15px 40px rgba(124,58,237,.6)}
+.single-box{position:relative;width:100%;max-width:700px;margin:0 auto;background:#0e0e22;border:1px solid #24245a;border-radius:22px;overflow:hidden;min-height:520px;display:grid;place-items:center;box-shadow:inset 0 0 40px rgba(0,0,0,.5)}
+.canvas-stage{position:relative;width:100%;height:520px;background:#0e0e22;border-radius:18px;overflow:hidden;display:grid;place-items:center}
+.layer-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#0e0e22;z-index:1;display:block;pointer-events:none;user-select:none}
+.x-btn{position:absolute!important;top:12px!important;right:12px!important;width:40px!important;height:40px!important;border-radius:50%!important;background:linear-gradient(135deg,#ef4444,#dc2626)!important;color:#fff!important;border:2px solid rgba(255,255,255,.9)!important;font-weight:900!important;cursor:pointer!important;z-index:50!important;font-size:16px;box-shadow:0 4px 15px rgba(239,68,68,.5)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0}
+@media(max-width:640px){.row2{grid-template-columns:1fr}}
+.mg-card{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:16px;position:relative;overflow:hidden}
+.mg-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.8}
+.mg-card.card-ratio{--accent:#06b6d4}
+.mg-card.card-file{--accent:#f59e0b}
+.card-head{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:12px}
+.card-head-icon{font-size:16px}
+.card-head-title{font-size:12px;font-weight:800;color:#c4b5fd;letter-spacing:.5px;text-transform:uppercase}
+.ratios-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.ratio{padding:11px 4px;border-radius:12px;background:#1a1a33;border:1px solid #2a2a5a;color:#c4b5fd;font-weight:800;font-size:11px;cursor:pointer;text-align:center;transition:.2s;user-select:none}
+.ratio:hover{background:#22224a;transform:translateY(-1px);border-color:#3a3a6a}
+.ratio.active{background:linear-gradient(135deg,#7c3aed,#06b6d4);color:#fff;border:0;box-shadow:0 6px 20px rgba(124,58,237,.5);transform:translateY(-2px)}
+.mg-card select{width:100%;background:#0e0e22;border:1px solid #2a2a5a;border-radius:11px;padding:11px 14px;color:#fff;font-size:13px;margin-bottom:10px;font-family:inherit;font-weight:600;cursor:pointer;transition:.2s;appearance:none;background-image:url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23c4b5fd' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");background-repeat:no-repeat;background-position:right 12px center;background-size:16px;padding-right:38px}
+.mg-card select:hover{border-color:#3a3a6a;background-color:#12122e}
+.mg-card select:focus{outline:none;border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.2)}
+.mg-card input[type=range]{width:100%;margin:10px 0 6px;accent-color:#a855f7;height:6px;border-radius:3px}
+.range-labels{display:flex;justify-content:space-between;color:#8a8aa6;font-size:10px;font-weight:600;letter-spacing:.3px}
+.range-labels span:nth-child(2){color:#6effb0;font-weight:800}
+.btn-success{background:linear-gradient(135deg,#102a1a,#1a5a2a);border:1px solid #1a5a2a;color:#6effb0;padding:16px 36px;font-size:15px;border-radius:14px;font-weight:800;cursor:pointer;display:block;margin:0 auto;transition:.3s;letter-spacing:.5px;position:relative;overflow:hidden}
+.btn-success::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent,rgba(110,255,176,.15),transparent);transform:translateX(-100%);transition:.5s}
+.btn-success:hover::before{transform:translateX(100%)}
+.btn-success:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(110,255,176,.3);border-color:#6effb0}
+.btn-success:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-success:disabled::before{display:none}
+.status-line{text-align:center;color:#6effb0;font-size:12px;margin-top:14px;min-height:18px;font-weight:600;letter-spacing:.3px}
+</style></head><body>
+<div class="pixora"><div class="tool-dark">
+<div class="badge-pro">YEMEN SAFYA · ÉDITEUR</div>
 
-  <div id="drop-zone">
-    <p style="font-size:50px">🖼️📁</p>
-    <p style="font-weight:bold">اختر صورة أو اسحبها هنا</p>
-    <input type="file" id="file-input" accept="image/*" style="display:none">
+<div id="previewContainer" style="min-height:520px;margin:16px 0;display:grid;place-items:center;position:relative">
+  <div id="initialChooser" class="initial-chooser">
+    <div>
+      <div class="chooser-icon">🖼️</div>
+      <div class="chooser-title">Choisir une photo</div>
+      <div class="chooser-sub">Redimensionnement · Conversion · Compression</div>
+      <div class="chooser-cta">📁 Choisir Photo</div>
+    </div>
   </div>
-
-  <div id="canvas-container">
-    <canvas id="image-canvas"></canvas>
-    <canvas id="mask-canvas"></canvas>
+  <div id="singleBox" class="single-box" style="display:none">
+    <div id="canvasStage" class="canvas-stage">
+      <img id="layerBg" class="layer-bg">
+    </div>
+    <button class="x-btn" onclick="clearAll()">✕</button>
   </div>
-
-  <div id="controls">
-    <button id="btn-clear">🧹 مسح التحديد</button>
-    <button id="btn-remove" disabled>🗑️ إزالة الكائن</button>
-  </div>
-
-  <div class="progress-bar" id="progress-bar">
-    <div class="progress-fill" id="progress-fill"></div>
-  </div>
-  <div id="hint" class="hint" style="display:none">✏️ ارسم على الكائن الذي تريد إزالته</div>
 </div>
 
-<script type="module">
-import * as ort from 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.26.0/dist/ort.webgpu.min.mjs';
+<input type="file" id="fileInput" accept="image/*" style="display:none">
 
-const MODEL_URL = 'https://huggingface.co/Carve/LaMa-ONNX/resolve/main/lama_fp32.onnx';
-const MODEL_SIZE = 512;
+<div class="row2">
+  <div class="mg-card card-ratio">
+    <div class="card-head"><span class="card-head-icon">📐</span><span class="card-head-title">Échelle</span></div>
+    <div class="ratios-grid" id="ratiosGrid"></div>
+  </div>
+  <div class="mg-card card-file">
+    <div class="card-head"><span class="card-head-icon">💾</span><span class="card-head-title">Fichier & Qualité</span></div>
+    <select id="format">
+      <option value="jpg">📷 JPG — Standard</option>
+      <option value="png">🖼️ PNG — Sans perte</option>
+      <option value="webp">⚡ WEBP — Moderne</option>
+      <option value="pdf">📄 PDF — Document</option>
+    </select>
+    <select id="qualitySelect">
+      <option value="0.92">💎 HD — 92%</option>
+      <option value="1">✨ 4K — 100%</option>
+      <option value="0.85">⭐ 85%</option>
+      <option value="0.7">📦 70%</option>
+      <option value="0.5">🪶 50%</option>
+    </select>
+    <input type="range" id="qualityRange" min="10" max="100" value="92">
+    <div class="range-labels"><span>Basse</span><span id="qualityVal">92%</span><span>Ultra</span></div>
+  </div>
+</div>
 
-let session = null;
-let imageElement = null;
-let isDrawing = false;
-const imageCanvas = document.getElementById('image-canvas');
-const maskCanvas = document.getElementById('mask-canvas');
-const imageCtx = imageCanvas.getContext('2d');
-const maskCtx = maskCanvas.getContext('2d');
-const statusEl = document.getElementById('status');
-const dropZone = document.getElementById('drop-zone');
-const fileInput = document.getElementById('file-input');
-const canvasContainer = document.getElementById('canvas-container');
-const controls = document.getElementById('controls');
-const btnClear = document.getElementById('btn-clear');
-const btnRemove = document.getElementById('btn-remove');
-const progressBar = document.getElementById('progress-bar');
-const progressFill = document.getElementById('progress-fill');
-const hintEl = document.getElementById('hint');
+<div style="text-align:center;margin:18px 0 4px">
+  <button class="btn-success" id="btnDownload" disabled onclick="downloadHD()">⬇️ Télécharger HD</button>
+</div>
 
-/* ---------- 1. Load Model ---------- */
-async function loadModel() {
-  try {
-    statusEl.textContent = '⏳ جاري تحضير ONNX Runtime...';
-    ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.26.0/dist/';
-    ort.env.wasm.numThreads = 1;
+<div class="status-line" id="statusLine">✅ Prêt — Choisissez une photo</div>
+</div></div>
 
-    statusEl.textContent = '⏳ جاري تحميل النموذج (209MB)... الرجاء الانتظار';
-    const response = await fetch(MODEL_URL);
-    if (!response.ok) throw new Error('فشل التحميل: ' + response.status);
-    const arrayBuffer = await response.arrayBuffer();
+<script>
+const $=id=>document.getElementById(id);
+let origImg=null;
+let currentRatio='Originale';
 
-    statusEl.textContent = '⚙️ جاري تهيئة الجلسة...';
-    let providers = ['wasm'];
-    if (navigator.gpu) {
-      providers = ['webgpu', 'wasm'];
-      statusEl.textContent = '⚙️ جاري تهيئة GPU...';
-    }
+const initialChooser=$('initialChooser'),singleBox=$('singleBox'),canvasStage=$('canvasStage'),layerBg=$('layerBg'),
+      fileInput=$('fileInput'),formatSel=$('format'),qualitySel=$('qualitySelect'),qualityRange=$('qualityRange'),
+      qualityVal=$('qualityVal'),btnDownload=$('btnDownload'),statusLine=$('statusLine');
 
-    session = await ort.InferenceSession.create(arrayBuffer, { executionProviders: providers });
-    statusEl.textContent = '✅ النموذج جاهز! اختر صورة للبدء.';
-    statusEl.style.color = '#6effb0';
-  } catch (e) {
-    console.error(e);
-    statusEl.textContent = '❌ فشل تحميل النموذج: ' + e.message;
-    statusEl.style.color = '#ff6b6b';
-  }
-}
-loadModel();
-
-/* ---------- 2. File handling ---------- */
-dropZone.addEventListener('click', () => fileInput.click());
-dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.borderColor = '#fff'; });
-dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = '#6effb0'; });
-dropZone.addEventListener('drop', e => {
-  e.preventDefault();
-  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
-});
-fileInput.addEventListener('change', e => {
-  if (e.target.files.length) handleFile(e.target.files[0]);
+/* ========== Ratios ========== */
+const ratios=["Originale","1:1","4:5","5:4","4:3","3:4","3:2","2:3","9:10","16:9","19:9","21:9"];
+const ratiosGrid=$('ratiosGrid');
+ratios.forEach(r=>{
+  const s=document.createElement('span');
+  s.className='ratio'+(r==='Originale'?' active':'');
+  s.textContent=r;
+  s.onclick=()=>{document.querySelectorAll('.ratio').forEach(x=>x.classList.remove('active'));s.classList.add('active');applyRatio(r);};
+  ratiosGrid.appendChild(s);
 });
 
-function handleFile(file) {
-  const reader = new FileReader();
-  reader.onload = e => {
-    const img = new Image();
-    img.onload = () => {
-      imageElement = img;
-      setupCanvas(img);
-    };
-    img.src = e.target.result;
+/* ========== File Chooser ========== */
+initialChooser.onclick=()=>fileInput.click();
+fileInput.onchange=e=>{
+  if(!e.target.files[0]) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    const im=new Image();
+    im.onload=()=>{origImg=im;setupImage(im);};
+    im.src=ev.target.result;
   };
-  reader.readAsDataURL(file);
+  r.readAsDataURL(e.target.files[0]);
+};
+
+function setupImage(im){
+  initialChooser.style.display='none';
+  singleBox.style.display='grid';
+  btnDownload.disabled=false;
+  layerBg.src=im.src;
+  applyRatio(currentRatio);
+  statusLine.textContent='✅ Photo chargée — Choisissez format et qualité';
 }
 
-function setupCanvas(img) {
-  const maxWidth = 600;
-  const scale = Math.min(1, maxWidth / img.width);
-  const dw = Math.round(img.width * scale);
-  const dh = Math.round(img.height * scale);
-
-  imageCanvas.width = dw;
-  imageCanvas.height = dh;
-  imageCtx.drawImage(img, 0, 0, dw, dh);
-
-  maskCanvas.width = dw;
-  maskCanvas.height = dh;
-  maskCtx.clearRect(0, 0, dw, dh);
-  maskCtx.fillStyle = 'rgba(168,85,247,.55)';
-  maskCtx.strokeStyle = 'rgba(168,85,247,.85)';
-  maskCtx.lineWidth = 30;
-  maskCtx.lineCap = 'round';
-  maskCtx.lineJoin = 'round';
-
-  dropZone.style.display = 'none';
-  canvasContainer.style.display = 'block';
-  controls.style.display = 'flex';
-  hintEl.style.display = 'block';
-  statusEl.textContent = '✏️ ارسم على الكائن الذي تريد إزالته';
-  statusEl.style.color = '#aaa';
-
-  if (session) btnRemove.disabled = false;
+/* ========== Ratios ========== */
+function applyRatio(r){
+  currentRatio=r;
+  if(!origImg) return;
+  const stage=canvasStage,box=singleBox;
+  stage.style.aspectRatio='';stage.style.height='520px';box.style.maxWidth='700px';
+  if(r==='Originale'){stage.style.height='520px';layerBg.style.objectFit='contain';}
+  else if(r==='1:1'){stage.style.aspectRatio='1/1';stage.style.height='auto';box.style.maxWidth='560px';layerBg.style.objectFit='cover';}
+  else if(r==='4:5'){stage.style.aspectRatio='4/5';stage.style.height='auto';box.style.maxWidth='520px';layerBg.style.objectFit='cover';}
+  else if(r==='5:4'){stage.style.aspectRatio='5/4';stage.style.height='auto';box.style.maxWidth='680px';layerBg.style.objectFit='cover';}
+  else if(r==='4:3'){stage.style.aspectRatio='4/3';stage.style.height='auto';box.style.maxWidth='700px';layerBg.style.objectFit='cover';}
+  else if(r==='3:4'){stage.style.aspectRatio='3/4';stage.style.height='auto';box.style.maxWidth='500px';layerBg.style.objectFit='cover';}
+  else if(r==='3:2'){stage.style.aspectRatio='3/2';stage.style.height='auto';box.style.maxWidth='700px';layerBg.style.objectFit='cover';}
+  else if(r==='2:3'){stage.style.aspectRatio='2/3';stage.style.height='auto';box.style.maxWidth='480px';layerBg.style.objectFit='cover';}
+  else if(r==='9:10'){stage.style.aspectRatio='9/10';stage.style.height='auto';box.style.maxWidth='520px';layerBg.style.objectFit='cover';}
+  else if(r==='16:9'){stage.style.aspectRatio='16/9';stage.style.height='auto';box.style.maxWidth='700px';layerBg.style.objectFit='cover';}
+  else if(r==='19:9'){stage.style.aspectRatio='19/9';stage.style.height='auto';box.style.maxWidth='700px';layerBg.style.objectFit='cover';}
+  else if(r==='21:9'){stage.style.aspectRatio='21/9';stage.style.height='auto';box.style.maxWidth='700px';layerBg.style.objectFit='cover';}
 }
 
-/* ---------- 3. Drawing ---------- */
-function getPos(e) {
-  const rect = maskCanvas.getBoundingClientRect();
-  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-  return {
-    x: (clientX - rect.left) * (maskCanvas.width / rect.width),
-    y: (clientY - rect.top) * (maskCanvas.height / rect.height)
-  };
-}
+/* ========== Quality ========== */
+qualitySel.onchange=function(){qualityRange.value=Math.round(parseFloat(this.value)*100);qualityVal.textContent=qualityRange.value+'%';};
+qualityRange.oninput=function(){qualityVal.textContent=this.value+'%';qualitySel.value=(this.value/100).toFixed(2);};
 
-function startDraw(e) {
-  e.preventDefault();
-  isDrawing = true;
-  const { x, y } = getPos(e);
-  maskCtx.beginPath();
-  maskCtx.moveTo(x, y);
-  maskCtx.lineTo(x + 0.1, y + 0.1);
-  maskCtx.stroke();
-}
+/* ========== Download ========== */
+window.downloadHD=function(){
+  if(!origImg) return;
+  const fmt=formatSel.value;
+  const q=parseFloat(qualitySel.value);
 
-function moveDraw(e) {
-  if (!isDrawing) return;
-  e.preventDefault();
-  const { x, y } = getPos(e);
-  maskCtx.lineTo(x, y);
-  maskCtx.stroke();
-}
-
-function endDraw() { isDrawing = false; }
-
-maskCanvas.addEventListener('mousedown', startDraw);
-maskCanvas.addEventListener('mousemove', moveDraw);
-window.addEventListener('mouseup', endDraw);
-maskCanvas.addEventListener('touchstart', startDraw, { passive: false });
-maskCanvas.addEventListener('touchmove', moveDraw, { passive: false });
-window.addEventListener('touchend', endDraw);
-
-btnClear.addEventListener('click', () => {
-  maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
-  maskCtx.beginPath();
-});
-
-/* ---------- 4. Inpainting ---------- */
-btnRemove.addEventListener('click', async () => {
-  if (!session || !imageElement) return;
-  btnRemove.disabled = true;
-  btnClear.disabled = true;
-  progressBar.style.display = 'block';
-  updateProgress(5, 'تحضير الماسك...');
-
-  // Bounding box of drawn mask
-  const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  for (let y = 0; y < maskData.height; y++) {
-    for (let x = 0; x < maskData.width; x++) {
-      const a = maskData.data[(y * maskData.width + x) * 4 + 3];
-      if (a > 10) {
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
-      }
-    }
+  let outW=origImg.width, outH=origImg.height;
+  if(currentRatio!=='Originale'){
+    const[ra,rb]=currentRatio.split(':').map(Number);
+    const tr=ra/rb;
+    const sr=outW/outH;
+    if(sr>tr){outW=Math.round(outH*tr);}else{outH=Math.round(outW/tr);}
   }
 
-  if (minX === Infinity) {
-    statusEl.textContent = '⚠️ لم ترسم أي شيء!';
-    btnRemove.disabled = false;
-    btnClear.disabled = false;
-    progressBar.style.display = 'none';
+  const canvas=document.createElement('canvas');
+  canvas.width=outW;canvas.height=outH;
+  const ctx=canvas.getContext('2d');
+  if(fmt!=='png'){ctx.fillStyle='#000';ctx.fillRect(0,0,outW,outH);}
+
+  if(currentRatio==='Originale'){
+    ctx.drawImage(origImg,0,0);
+  }else{
+    const[ra,rb]=currentRatio.split(':').map(Number);
+    const tr=ra/rb;
+    const sr=origImg.width/origImg.height;
+    let sw,sh,sx,sy;
+    if(sr>tr){sh=origImg.height;sw=sh*tr;sx=(origImg.width-sw)/2;sy=0;}
+    else{sw=origImg.width;sh=sw/tr;sx=0;sy=(origImg.height-sh)/2;}
+    ctx.drawImage(origImg,sx,sy,sw,sh,0,0,outW,outH);
+  }
+
+  if(fmt==='pdf'){
+    const dataUrl=canvas.toDataURL('image/jpeg',q);
+    const w=window.open();
+    w.document.write('<html><head><title>PDF</title></head><body style="margin:0"><img src="'+dataUrl+'" style="width:100%"></body></html>');
+    w.document.close();
+    setTimeout(()=>w.print(),500);
     return;
   }
 
-  // Pad with context
-  const padding = 60;
-  minX = Math.max(0, minX - padding);
-  minY = Math.max(0, minY - padding);
-  maxX = Math.min(maskCanvas.width, maxX + padding);
-  maxY = Math.min(maskCanvas.height, maxY + padding);
-  const roiW = maxX - minX;
-  const roiH = maxY - minY;
+  const mime=fmt==='png'?'image/png':fmt==='webp'?'image/webp':'image/jpeg';
+  canvas.toBlob(b=>{
+    const a=document.createElement('a');
+    a.download='yemen-safya-'+currentRatio+'.'+fmt;
+    a.href=URL.createObjectURL(b);
+    a.click();
+    statusLine.textContent='✅ Téléchargé : yemen-safya-'+currentRatio+'.'+fmt;
+  },mime,q);
+};
 
-  try {
-    updateProgress(20, 'قص المنطقة...');
-    await new Promise(r => setTimeout(r, 30));
-
-    // Crop image
-    const cropCanvas = document.createElement('canvas');
-    cropCanvas.width = roiW;
-    cropCanvas.height = roiH;
-    cropCanvas.getContext('2d').drawImage(imageCanvas, minX, minY, roiW, roiH, 0, 0, roiW, roiH);
-
-    // Crop mask
-    const maskCropCanvas = document.createElement('canvas');
-    maskCropCanvas.width = roiW;
-    maskCropCanvas.height = roiH;
-    maskCropCanvas.getContext('2d').drawImage(maskCanvas, minX, minY, roiW, roiH, 0, 0, roiW, roiH);
-
-    // Resize image to 512x512
-    const modelImgCanvas = document.createElement('canvas');
-    modelImgCanvas.width = MODEL_SIZE;
-    modelImgCanvas.height = MODEL_SIZE;
-    modelImgCanvas.getContext('2d').drawImage(cropCanvas, 0, 0, MODEL_SIZE, MODEL_SIZE);
-
-    // Resize mask to 512x512 (nearest)
-    const modelMaskCanvas = document.createElement('canvas');
-    modelMaskCanvas.width = MODEL_SIZE;
-    modelMaskCanvas.height = MODEL_SIZE;
-    const mmCtx = modelMaskCanvas.getContext('2d');
-    mmCtx.imageSmoothingEnabled = false;
-    mmCtx.drawImage(maskCropCanvas, 0, 0, MODEL_SIZE, MODEL_SIZE);
-
-    updateProgress(40, 'تشغيل الذكاء الاصطناعي (LaMa)...');
-    await new Promise(r => setTimeout(r, 30));
-
-    // Convert to tensors
-    const imgData = modelImgCanvas.getContext('2d').getImageData(0, 0, MODEL_SIZE, MODEL_SIZE).data;
-    const maskDataModel = modelMaskCanvas.getContext('2d').getImageData(0, 0, MODEL_SIZE, MODEL_SIZE).data;
-
-    const N = MODEL_SIZE * MODEL_SIZE;
-    const imageTensor = new Float32Array(3 * N);
-    const maskTensor = new Float32Array(N);
-
-    for (let i = 0; i < N; i++) {
-      imageTensor[i] = imgData[i * 4] / 255;
-      imageTensor[N + i] = imgData[i * 4 + 1] / 255;
-      imageTensor[2 * N + i] = imgData[i * 4 + 2] / 255;
-      maskTensor[i] = maskDataModel[i * 4 + 3] > 0 ? 1 : 0;
-    }
-
-    const feeds = {
-      image: new ort.Tensor('float32', imageTensor, [1, 3, MODEL_SIZE, MODEL_SIZE]),
-      mask: new ort.Tensor('float32', maskTensor, [1, 1, MODEL_SIZE, MODEL_SIZE])
-    };
-
-    updateProgress(60, 'معالجة...');
-    await new Promise(r => setTimeout(r, 30));
-
-    const results = await session.run(feeds);
-    const output = results[Object.keys(results)[0]];
-    const outData = output.data;
-
-    updateProgress(85, 'دمج النتيجة...');
-    await new Promise(r => setTimeout(r, 30));
-
-    // Convert output to canvas
-    const resultCanvas = document.createElement('canvas');
-    resultCanvas.width = MODEL_SIZE;
-    resultCanvas.height = MODEL_SIZE;
-    const rCtx = resultCanvas.getContext('2d');
-    const rImgData = rCtx.createImageData(MODEL_SIZE, MODEL_SIZE);
-
-    for (let i = 0; i < N; i++) {
-      rImgData.data[i * 4] = Math.min(255, Math.max(0, outData[i] * 255));
-      rImgData.data[i * 4 + 1] = Math.min(255, Math.max(0, outData[N + i] * 255));
-      rImgData.data[i * 4 + 2] = Math.min(255, Math.max(0, outData[2 * N + i] * 255));
-      rImgData.data[i * 4 + 3] = 255;
-    }
-    rCtx.putImageData(rImgData, 0, 0);
-
-    // Upscale result to ROI
-    const finalPatch = document.createElement('canvas');
-    finalPatch.width = roiW;
-    finalPatch.height = roiH;
-    finalPatch.getContext('2d').drawImage(resultCanvas, 0, 0, roiW, roiH);
-
-    // Feather mask
-    const featherCanvas = document.createElement('canvas');
-    featherCanvas.width = roiW;
-    featherCanvas.height = roiH;
-    const fCtx = featherCanvas.getContext('2d');
-    fCtx.filter = 'blur(6px)';
-    fCtx.drawImage(maskCropCanvas, 0, 0);
-    fCtx.filter = 'none';
-
-    // Apply mask to result patch
-    const tempPatch = document.createElement('canvas');
-    tempPatch.width = roiW;
-    tempPatch.height = roiH;
-    const tCtx = tempPatch.getContext('2d');
-    tCtx.drawImage(finalPatch, 0, 0);
-    tCtx.globalCompositeOperation = 'destination-in';
-    tCtx.drawImage(featherCanvas, 0, 0);
-
-    // Blend into image canvas
-    imageCtx.drawImage(tempPatch, minX, minY);
-
-    // Clear mask + update element
-    maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
-    imageElement = new Image();
-    imageElement.src = imageCanvas.toDataURL('image/png');
-
-    updateProgress(100, '✅ تمت الإزالة بنجاح!');
-    statusEl.textContent = '✅ تمت الإزالة بنجاح! يمكنك رسم منطقة أخرى.';
-    statusEl.style.color = '#6effb0';
-    setTimeout(() => { progressBar.style.display = 'none'; }, 1500);
-
-  } catch (err) {
-    console.error(err);
-    statusEl.textContent = '❌ حدث خطأ: ' + err.message;
-    statusEl.style.color = '#ff6b6b';
-  } finally {
-    btnRemove.disabled = false;
-    btnClear.disabled = false;
-  }
-});
-
-function updateProgress(percent, text) {
-  progressFill.style.width = percent + '%';
-  if (text) statusEl.textContent = text;
-}
+/* ========== Clear ========== */
+window.clearAll=function(){
+  origImg=null;fileInput.value='';
+  initialChooser.style.display='grid';singleBox.style.display='none';
+  btnDownload.disabled=true;
+  currentRatio='Originale';
+  document.querySelectorAll('.ratio').forEach((x,i)=>x.classList.toggle('active',i===0));
+  statusLine.textContent='✅ Prêt — Choisissez une photo';
+};
 </script>
-</body>
-  </html>
+</body></html>

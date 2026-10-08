@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مزيل الكائنات AI - مجاني</title>
+<style>
+  *{box-sizing:border-box}
+  body{font-family:system-ui,sans-serif;background:#0f0f1a;color:#e0e0ff;margin:0;padding:16px;display:flex;flex-direction:column;align-items:center;min-height:100vh}
+  .container{max-width:700px;width:100%;background:#1a1a2e;border-radius:20px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,0.5)}
+  h1{color:#6effb0;text-align:center;font-size:22px;margin:0 0 10px}
+  #status{text-align:center;margin:15px 0;font-size:13px;color:#aaa;min-height:40px;line-height:1.5}
+  #drop-zone{border:2px dashed #6effb0;border-radius:15px;padding:40px 20px;text-align:center;cursor:pointer;transition:.3s}
+  #drop-zone:hover{background:rgba(110,255,176,.1)}
+  #drop-zone p{margin:8px 0}
+  #canvas-container{position:relative;display:none;margin-top:20px;max-width:100%}
+  #image-canvas{max-width:100%;border-radius:10px;display:block;height:auto}
+  #mask-canvas{position:absolute;top:0;left:0;cursor:crosshair;border-radius:10px;touch-action:none}
+  #controls{display:none;margin-top:20px;gap:10px;justify-content:center;flex-wrap:wrap}
+  button{background:linear-gradient(90deg,#7c3aed,#06b6d4);border:none;color:#fff;padding:12px 22px;border-radius:10px;font-weight:bold;cursor:pointer;font-size:15px;font-family:inherit}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .progress-bar{width:100%;height:6px;background:#333;border-radius:3px;margin-top:15px;overflow:hidden;display:none}
+  .progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#6effb0,#06b6d4);transition:width .3s}
+  .hint{color:#6effb0;font-weight:800;font-size:12px;text-align:center;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>✨ مزيل الكائنات AI</h1>
+  <div id="status">⏳ جاري تحميل النموذج... (قد يستغرق بعض الوقت في المرة الأولى)</div>
+
+  <div id="drop-zone">
+    <p style="font-size:50px">🖼️📁</p>
+    <p style="font-weight:bold">اختر صورة أو اسحبها هنا</p>
+    <input type="file" id="file-input" accept="image/*" style="display:none">
+  </div>
+
+  <div id="canvas-container">
+    <canvas id="image-canvas"></canvas>
+    <canvas id="mask-canvas"></canvas>
+  </div>
+
+  <div id="controls">
+    <button id="btn-clear">🧹 مسح التحديد</button>
+    <button id="btn-remove" disabled>🗑️ إزالة الكائن</button>
+  </div>
+
+  <div class="progress-bar" id="progress-bar">
+    <div class="progress-fill" id="progress-fill"></div>
+  </div>
+  <div id="hint" class="hint" style="display:none">✏️ ارسم على الكائن الذي تريد إزالته</div>
+</div>
+
+<script type="module">
+import * as ort from 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.26.0/dist/ort.webgpu.min.mjs';
+
+const MODEL_URL = 'https://huggingface.co/Carve/LaMa-ONNX/resolve/main/lama_fp32.onnx';
+const MODEL_SIZE = 512;
+
+let session = null;
+let imageElement = null;
+let isDrawing = false;
+const imageCanvas = document.getElementById('image-canvas');
+const maskCanvas = document.getElementById('mask-canvas');
+const imageCtx = imageCanvas.getContext('2d');
+const maskCtx = maskCanvas.getContext('2d');
+const statusEl = document.getElementById('status');
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+const canvasContainer = document.getElementById('canvas-container');
+const controls = document.getElementById('controls');
+const btnClear = document.getElementById('btn-clear');
+const btnRemove = document.getElementById('btn-remove');
+const progressBar = document.getElementById('progress-bar');
+const progressFill = document.getElementById('progress-fill');
+const hintEl = document.getElementById('hint');
+
+/* ---------- 1. Load Model ---------- */
+async function loadModel() {
+  try {
+    statusEl.textContent = '⏳ جاري تحضير ONNX Runtime...';
+    ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.26.0/dist/';
+    ort.env.wasm.numThreads = 1;
+
+    statusEl.textContent = '⏳ جاري تحميل النموذج (209MB)... الرجاء الانتظار';
+    const response = await fetch(MODEL_URL);
+    if (!response.ok) throw new Error('فشل التحميل: ' + response.status);
+    const arrayBuffer = await response.arrayBuffer();
+
+    statusEl.textContent = '⚙️ جاري تهيئة الجلسة...';
+    let providers = ['wasm'];
+    if (navigator.gpu) {
+      providers = ['webgpu', 'wasm'];
+      statusEl.textContent = '⚙️ جاري تهيئة GPU...';
+    }
+
+    session = await ort.InferenceSession.create(arrayBuffer, { executionProviders: providers });
+    statusEl.textContent = '✅ النموذج جاهز! اختر صورة للبدء.';
+    statusEl.style.color = '#6effb0';
+  } catch (e) {
+    console.error(e);
+    statusEl.textContent = '❌ فشل تحميل النموذج: ' + e.message;
+    statusEl.style.color = '#ff6b6b';
+  }
+}
+loadModel();
+
+/* ---------- 2. File handling ---------- */
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.borderColor = '#fff'; });
+dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = '#6effb0'; });
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e => {
+  if (e.target.files.length) handleFile(e.target.files[0]);
+});
+
+function handleFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      imageElement = img;
+      setupCanvas(img);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function setupCanvas(img) {
+  const maxWidth = 600;
+  const scale = Math.min(1, maxWidth / img.width);
+  const dw = Math.round(img.width * scale);
+  const dh = Math.round(img.height * scale);
+
+  imageCanvas.width = dw;
+  imageCanvas.height = dh;
+  imageCtx.drawImage(img, 0, 0, dw, dh);
+
+  maskCanvas.width = dw;
+  maskCanvas.height = dh;
+  maskCtx.clearRect(0, 0, dw, dh);
+  maskCtx.fillStyle = 'rgba(168,85,247,.55)';
+  maskCtx.strokeStyle = 'rgba(168,85,247,.85)';
+  maskCtx.lineWidth = 30;
+  maskCtx.lineCap = 'round';
+  maskCtx.lineJoin = 'round';
+
+  dropZone.style.display = 'none';
+  canvasContainer.style.display = 'block';
+  controls.style.display = 'flex';
+  hintEl.style.display = 'block';
+  statusEl.textContent = '✏️ ارسم على الكائن الذي تريد إزالته';
+  statusEl.style.color = '#aaa';
+
+  if (session) btnRemove.disabled = false;
+}
+
+/* ---------- 3. Drawing ---------- */
+function getPos(e) {
+  const rect = maskCanvas.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return {
+    x: (clientX - rect.left) * (maskCanvas.width / rect.width),
+    y: (clientY - rect.top) * (maskCanvas.height / rect.height)
+  };
+}
+
+function startDraw(e) {
+  e.preventDefault();
+  isDrawing = true;
+  const { x, y } = getPos(e);
+  maskCtx.beginPath();
+  maskCtx.moveTo(x, y);
+  maskCtx.lineTo(x + 0.1, y + 0.1);
+  maskCtx.stroke();
+}
+
+function moveDraw(e) {
+  if (!isDrawing) return;
+  e.preventDefault();
+  const { x, y } = getPos(e);
+  maskCtx.lineTo(x, y);
+  maskCtx.stroke();
+}
+
+function endDraw() { isDrawing = false; }
+
+maskCanvas.addEventListener('mousedown', startDraw);
+maskCanvas.addEventListener('mousemove', moveDraw);
+window.addEventListener('mouseup', endDraw);
+maskCanvas.addEventListener('touchstart', startDraw, { passive: false });
+maskCanvas.addEventListener('touchmove', moveDraw, { passive: false });
+window.addEventListener('touchend', endDraw);
+
+btnClear.addEventListener('click', () => {
+  maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+  maskCtx.beginPath();
+});
+
+/* ---------- 4. Inpainting ---------- */
+btnRemove.addEventListener('click', async () => {
+  if (!session || !imageElement) return;
+  btnRemove.disabled = true;
+  btnClear.disabled = true;
+  progressBar.style.display = 'block';
+  updateProgress(5, 'تحضير الماسك...');
+
+  // Bounding box of drawn mask
+  const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (let y = 0; y < maskData.height; y++) {
+    for (let x = 0; x < maskData.width; x++) {
+      const a = maskData.data[(y * maskData.width + x) * 4 + 3];
+      if (a > 10) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+
+  if (minX === Infinity) {
+    statusEl.textContent = '⚠️ لم ترسم أي شيء!';
+    btnRemove.disabled = false;
+    btnClear.disabled = false;
+    progressBar.style.display = 'none';
+    return;
+  }
+
+  // Pad with context
+  const padding = 60;
+  minX = Math.max(0, minX - padding);
+  minY = Math.max(0, minY - padding);
+  maxX = Math.min(maskCanvas.width, maxX + padding);
+  maxY = Math.min(maskCanvas.height, maxY + padding);
+  const roiW = maxX - minX;
+  const roiH = maxY - minY;
+
+  try {
+    updateProgress(20, 'قص المنطقة...');
+    await new Promise(r => setTimeout(r, 30));
+
+    // Crop image
+    const cropCanvas = document.createElement('canvas');
+    cropCanvas.width = roiW;
+    cropCanvas.height = roiH;
+    cropCanvas.getContext('2d').drawImage(imageCanvas, minX, minY, roiW, roiH, 0, 0, roiW, roiH);
+
+    // Crop mask
+    const maskCropCanvas = document.createElement('canvas');
+    maskCropCanvas.width = roiW;
+    maskCropCanvas.height = roiH;
+    maskCropCanvas.getContext('2d').drawImage(maskCanvas, minX, minY, roiW, roiH, 0, 0, roiW, roiH);
+
+    // Resize image to 512x512
+    const modelImgCanvas = document.createElement('canvas');
+    modelImgCanvas.width = MODEL_SIZE;
+    modelImgCanvas.height = MODEL_SIZE;
+    modelImgCanvas.getContext('2d').drawImage(cropCanvas, 0, 0, MODEL_SIZE, MODEL_SIZE);
+
+    // Resize mask to 512x512 (nearest)
+    const modelMaskCanvas = document.createElement('canvas');
+    modelMaskCanvas.width = MODEL_SIZE;
+    modelMaskCanvas.height = MODEL_SIZE;
+    const mmCtx = modelMaskCanvas.getContext('2d');
+    mmCtx.imageSmoothingEnabled = false;
+    mmCtx.drawImage(maskCropCanvas, 0, 0, MODEL_SIZE, MODEL_SIZE);
+
+    updateProgress(40, 'تشغيل الذكاء الاصطناعي (LaMa)...');
+    await new Promise(r => setTimeout(r, 30));
+
+    // Convert to tensors
+    const imgData = modelImgCanvas.getContext('2d').getImageData(0, 0, MODEL_SIZE, MODEL_SIZE).data;
+    const maskDataModel = modelMaskCanvas.getContext('2d').getImageData(0, 0, MODEL_SIZE, MODEL_SIZE).data;
+
+    const N = MODEL_SIZE * MODEL_SIZE;
+    const imageTensor = new Float32Array(3 * N);
+    const maskTensor = new Float32Array(N);
+
+    for (let i = 0; i < N; i++) {
+      imageTensor[i] = imgData[i * 4] / 255;
+      imageTensor[N + i] = imgData[i * 4 + 1] / 255;
+      imageTensor[2 * N + i] = imgData[i * 4 + 2] / 255;
+      maskTensor[i] = maskDataModel[i * 4 + 3] > 0 ? 1 : 0;
+    }
+
+    const feeds = {
+      image: new ort.Tensor('float32', imageTensor, [1, 3, MODEL_SIZE, MODEL_SIZE]),
+      mask: new ort.Tensor('float32', maskTensor, [1, 1, MODEL_SIZE, MODEL_SIZE])
+    };
+
+    updateProgress(60, 'معالجة...');
+    await new Promise(r => setTimeout(r, 30));
+
+    const results = await session.run(feeds);
+    const output = results[Object.keys(results)[0]];
+    const outData = output.data;
+
+    updateProgress(85, 'دمج النتيجة...');
+    await new Promise(r => setTimeout(r, 30));
+
+    // Convert output to canvas
+    const resultCanvas = document.createElement('canvas');
+    resultCanvas.width = MODEL_SIZE;
+    resultCanvas.height = MODEL_SIZE;
+    const rCtx = resultCanvas.getContext('2d');
+    const rImgData = rCtx.createImageData(MODEL_SIZE, MODEL_SIZE);
+
+    for (let i = 0; i < N; i++) {
+      rImgData.data[i * 4] = Math.min(255, Math.max(0, outData[i] * 255));
+      rImgData.data[i * 4 + 1] = Math.min(255, Math.max(0, outData[N + i] * 255));
+      rImgData.data[i * 4 + 2] = Math.min(255, Math.max(0, outData[2 * N + i] * 255));
+      rImgData.data[i * 4 + 3] = 255;
+    }
+    rCtx.putImageData(rImgData, 0, 0);
+
+    // Upscale result to ROI
+    const finalPatch = document.createElement('canvas');
+    finalPatch.width = roiW;
+    finalPatch.height = roiH;
+    finalPatch.getContext('2d').drawImage(resultCanvas, 0, 0, roiW, roiH);
+
+    // Feather mask
+    const featherCanvas = document.createElement('canvas');
+    featherCanvas.width = roiW;
+    featherCanvas.height = roiH;
+    const fCtx = featherCanvas.getContext('2d');
+    fCtx.filter = 'blur(6px)';
+    fCtx.drawImage(maskCropCanvas, 0, 0);
+    fCtx.filter = 'none';
+
+    // Apply mask to result patch
+    const tempPatch = document.createElement('canvas');
+    tempPatch.width = roiW;
+    tempPatch.height = roiH;
+    const tCtx = tempPatch.getContext('2d');
+    tCtx.drawImage(finalPatch, 0, 0);
+    tCtx.globalCompositeOperation = 'destination-in';
+    tCtx.drawImage(featherCanvas, 0, 0);
+
+    // Blend into image canvas
+    imageCtx.drawImage(tempPatch, minX, minY);
+
+    // Clear mask + update element
+    maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+    imageElement = new Image();
+    imageElement.src = imageCanvas.toDataURL('image/png');
+
+    updateProgress(100, '✅ تمت الإزالة بنجاح!');
+    statusEl.textContent = '✅ تمت الإزالة بنجاح! يمكنك رسم منطقة أخرى.';
+    statusEl.style.color = '#6effb0';
+    setTimeout(() => { progressBar.style.display = 'none'; }, 1500);
+
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = '❌ حدث خطأ: ' + err.message;
+    statusEl.style.color = '#ff6b6b';
+  } finally {
+    btnRemove.disabled = false;
+    btnClear.disabled = false;
+  }
+});
+
+function updateProgress(percent, text) {
+  progressFill.style.width = percent + '%';
+  if (text) statusEl.textContent = text;
+}
+</script>
+</body>
+  </html>
